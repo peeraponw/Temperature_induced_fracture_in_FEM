@@ -1,8 +1,8 @@
 from configparser import ConfigParser
 from airtable import Airtable
-import sys
+import sys, os
 import json
-
+from jinja2 import Environment, FileSystemLoader
 
 config = ConfigParser()
 config.read('config.cfg')
@@ -22,4 +22,10 @@ def fetch_airtable(sim_name):
         json.dump(res[0]['fields'], f)
 
 for sim_name in sim_list:
+    # get json file from airtable
     fetch_airtable(sim_name)
+    file_loader = FileSystemLoader("templates")
+    env = Environment(loader=file_loader)
+    abq_template = env.get_template('abq.py')
+    abq_template.stream(sim_name=sim_name).dump(f"{sim_name}.py")
+    os.system(f"abaqus cae noGUI={sim_name}.py")
