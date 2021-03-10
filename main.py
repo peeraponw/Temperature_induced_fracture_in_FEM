@@ -18,4 +18,4 @@ def fetch_airtable(sim_name):
         json.dump(res[0]['fields'], f)
 
 for sim_name in sim_list:
-    callAirtable(sim_name)
+    fetch_airtable(sim_name)
