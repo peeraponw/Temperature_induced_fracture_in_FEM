@@ -1,0 +1,21 @@
+#!/bin/sh
+########################################
+## Grid Engine QSB file
+## Created by QSub Build 2013-10-01
+## Date: 31.08.2020 18:16:55
+########################################
+#$ -N {{ sim_name }}
+#$ -o /home_work/{{ username }}/{{ sim_name }}/
+#$ -j y
+#$ -pe ncpus 8
+#$ -hard -l h_vmem=4096M
+#$ -hard -l ifort=true
+#$ -hard -l h_rt=216:0:0
+#$ -m b
+#$ -m e
+#$ -m a
+#$ -M {{ username }}@iehk.rwth-aachen.de
+#$ -hard -l a_abq=true
+module load abaqus/2019
+cd /home_work/{{ username }}/{{ sim_name }}
+abaqus interactive job={{ sim_name }} input=/home_work/{{ username }}/{{ sim_name }}/{{ sim_name }}.inp memory=4096mb cpus=8 user=/home_work/{{ username }}/{{ fortranfile }} double=explicit
