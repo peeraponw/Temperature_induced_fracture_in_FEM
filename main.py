@@ -1,8 +1,11 @@
 from configparser import ConfigParser
 from airtable import Airtable
+from shutil import copyfile
 import sys, os, glob
 import json
+import time
 from jinja2 import Environment, FileSystemLoader
+import paramiko
 
 config = ConfigParser()
 config.read('config.cfg')
@@ -31,11 +34,38 @@ for sim_name in sim_list:
     env = Environment(loader=FileSystemLoader("templates"))
     abq_template = env.get_template('abq.py')
     # render template
-    abq_template.stream(sim_name=sim_name).dump(f"{sim_name}.py")
+    abq_dict = {"sim_name": sim_name,
+                "matfile": config['qsub']['matfile']
+                }
+    abq_template.stream(abq_dict).dump(f"{sim_name}.py")
+    # run abaqus
     os.system(f"abaqus cae noGUI={sim_name}.py")
+    t0 = time.time()
+    while not os.path.exists(f"{sim_name}.inp") or time.time()-t0 > 5:
+        print("Abaqus is running ... please wait")
+        time.sleep(1)
+    # create a folder at X-drive and copy input file
+    if not os.path.exists(f"X:/{sim_name}"):
+        os.mkdir(f"X:/{sim_name}")
+    copyfile(f"{sim_name}.inp", f"X:/{sim_name}/{sim_name}.inp")
+    # copy qsub file and render template to X-drive
+    qsub_dict = {"sim_name": sim_name,
+                 "username": config['qsub']['username'],
+                 "fortranfile": config['qsub']['fortranfile']    
+                }
+    qsub_template = env.get_template('qsub.qsb')
+    qsub_template.stream(qsub_dict).dump(f"X:/{sim_name}/{sim_name}.qsb")
+    # copy material file
+    mat_template = env.get_template('mat.inp')
+    mat_template.stream().dump(f"X:/{sim_name}/{config['qsub']['matfile']}.inp")
+    # submit job
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect("tux202", username=config['qsub']['username'], password=config['qsub']['password'])
     
-    
-    
+    if not os.path.exists(f"X:/{sim_name}/{sim_name}.lck"):
+        stdin, stdout, stderr = ssh.exec_command(f"qsub $WORK/{sim_name}/{sim_name}.qsb")
+        print(stdout.readlines())
     
     # clean the directory
     clean_files("abaqus*") # delete all temp files by ABAQUS
