@@ -58,7 +58,7 @@ for sim_name in sim_list:
     qsub_template.stream(qsub_dict).dump(f"X:/{sim_name}/{sim_name}.qsb")
     # copy material file
     mat_template = env.get_template('mat.inp')
-    mat_template.stream().dump(f"X:/{sim_name}/{config['qsub']['matfile']}.inp")
+    mat_template.stream().dump(f"X:/{sim_name}/{config['qsub']['matfile']}")
     # submit job
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
