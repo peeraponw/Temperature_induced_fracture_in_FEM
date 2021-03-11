@@ -10,8 +10,8 @@ import paramiko
 config = ConfigParser()
 config.read('config.cfg')
 
-sim_list = ['rve01']
-
+sim_list = ['rve15', 'rve16', 'rve17', 'rve18', 'rve19']
+# sim_list = ['rve16']
 
 def fetch_airtable(sim_name):
     api_key = config['query']['api_key']
@@ -49,8 +49,9 @@ for sim_name in sim_list:
         os.mkdir(f"X:/{sim_name}")
     copyfile(f"{sim_name}.inp", f"X:/{sim_name}/{sim_name}.inp")
     # copy qsub file and render template to X-drive
+    username = config['qsub']['username']
     qsub_dict = {"sim_name": sim_name,
-                 "username": config['qsub']['username'],
+                 "username": username,
                  "fortranfile": config['qsub']['fortranfile']    
                 }
     qsub_template = env.get_template('qsub.qsb')
@@ -61,11 +62,14 @@ for sim_name in sim_list:
     # submit job
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect("tux202", username=config['qsub']['username'], password=config['qsub']['password'])
+    ssh.connect("tux202", username=username, password=config['qsub']['password'])
     
     if not os.path.exists(f"X:/{sim_name}/{sim_name}.lck"):
-        stdin, stdout, stderr = ssh.exec_command(f"qsub $WORK/{sim_name}/{sim_name}.qsb")
+        stdin, stdout, stderr = ssh.exec_command(f"qsub /home_work/{username}/{sim_name}/{sim_name}.qsb")
         print(stdout.readlines())
+    else:
+        print(f"LCK file exists ... deleting")
+        os.remove(glob.glob("*.lck")[0])
     
     # clean the directory
     clean_files("abaqus*") # delete all temp files by ABAQUS

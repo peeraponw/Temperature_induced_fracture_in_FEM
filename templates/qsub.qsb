@@ -18,4 +18,4 @@
 #$ -hard -l a_abq=true
 module load abaqus/2019
 cd /home_work/{{ username }}/{{ sim_name }}
-abaqus interactive job={{ sim_name }} input=/home_work/{{ username }}/{{ sim_name }}/{{ sim_name }} memory=4096mb cpus=8 user=/home_work/{{ username }}/{{ fortranfile }} double=explicit
+abaqus interactive job={{ sim_name }} input=/home_work/{{ username }}/{{ sim_name }}/{{ sim_name }}.inp memory=4096mb cpus=8 user=/home_work/{{ username }}/{{ fortranfile }} double=explicit
