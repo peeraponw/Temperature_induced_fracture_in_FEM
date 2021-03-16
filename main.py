@@ -52,6 +52,7 @@ for sim_name in sim_list:
     username = config['qsub']['username']
     qsub_dict = {"sim_name": sim_name,
                  "username": username,
+                 "email": email,
                  "fortranfile": config['qsub']['fortranfile']    
                 }
     qsub_template = env.get_template('qsub.qsb')

@@ -14,7 +14,7 @@
 #$ -m b
 #$ -m e
 #$ -m a
-#$ -M {{ username }}@iehk.rwth-aachen.de
+#$ -M {{ email }}
 #$ -hard -l a_abq=true
 module load abaqus/2019
 cd /home_work/{{ username }}/{{ sim_name }}
