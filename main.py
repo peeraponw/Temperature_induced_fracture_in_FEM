@@ -10,7 +10,7 @@ import paramiko
 config = ConfigParser()
 config.read('config.cfg')
 
-sim_list = ['rve15', 'rve16', 'rve17', 'rve18', 'rve19']
+sim_list = ['rve17', 'rve18', 'rve19']
 # sim_list = ['rve16']
 
 def fetch_airtable(sim_name):
