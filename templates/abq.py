@@ -230,6 +230,22 @@ elif method == 'radiation':
                                 field='',  
                                 radiationType=AMBIENT, 
                                 surface=myAsm.surfaces['ymax'])
+elif method == 'cool_convection': #--------------Champ edited--------------
+    myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=boxsize))
+    myModel.FilmCondition(createStepName='heat', 
+                                definition=EMBEDDED_COEFF, 
+                                filmCoeff=1000.0,  # NEEDED CHANGE
+                                filmCoeffAmplitude='', 
+                                name='Convection', 
+                                sinkAmplitude='', 
+                                sinkDistributionType=UNIFORM, 
+                                sinkFieldName='', 
+                                sinkTemperature=273.15, # NEEDED CHANGE
+                                surface=myAsm.surfaces['ymax'])
+else: 
+    print('ERROR: Undefined loading condition') 
+                                
+#--------------Champ edited--------------
     
 # # # create predefined temperature
 myAsm.Set(name='wholePart', cells=partAsm.cells)
