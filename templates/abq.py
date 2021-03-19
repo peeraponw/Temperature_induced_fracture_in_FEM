@@ -211,7 +211,7 @@ myModel.TempDisplacementDynamicsStep(improvedDtMethod=ON, name=
 myModel.setValues(absoluteZero= -273.15, stefanBoltzmann=5.67e-11)
 if method == 'bc_edge':
     # # # define geometry edge set for applying bc
-    myAsm.Set(name='temp_edge', edges=partAsm.edges.getByBoundingBox(xMin=boxsize, yMin=boxsize))
+    myAsm.Set(name='temp_edge', edges=partAsm.edges.getByBoundingBox(xMin=boxsize, yMin=height))
 
     myModel.TemperatureBC(name = 'heatBC',
                             amplitude=ampName, 
@@ -221,7 +221,7 @@ if method == 'bc_edge':
                             magnitude=1,
                             region=myAsm.sets['temp_edge'])
 elif method == 'radiation':
-    myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=boxsize))
+    myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=height))
     myModel.RadiationToAmbient(name='rad',
                                 ambientTemperature=1, 
                                 ambientTemperatureAmp=ampName, 
@@ -232,7 +232,7 @@ elif method == 'radiation':
                                 radiationType=AMBIENT, 
                                 surface=myAsm.surfaces['ymax'])
 elif method == 'cool_convection': #--------------Champ edited--------------
-    myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=boxsize))
+    myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=height))
     myModel.FilmCondition(createStepName='heat', 
                                 definition=EMBEDDED_COEFF, 
                                 filmCoeff=1000.0,  # NEEDED CHANGE
