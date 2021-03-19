@@ -20,16 +20,17 @@ sim_name = "{{ sim_name }}"
 with open(sim_name+'.json', 'r') as f:
     data = json.load(f)
 
+height = data['height'][0]
 boxsize = data['boxsize'][0]
 meshSize = data['meshsize'][0]
 
 # # # create part
 
 myModel = mdb.models['Model-1']
-s = myModel.ConstrainedSketch(name='__profile__', sheetSize=boxsize*2)
+s = myModel.ConstrainedSketch(name='__profile__', sheetSize=height*2)
 g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
 s.sketchOptions.setValues(decimalPlaces=6)
-s.rectangle(point1=(-0.5*boxsize, -0.5*boxsize), point2=(0.5*boxsize, 0.5*boxsize))
+s.rectangle(point1=(-0.5*boxsize, -0.5*height), point2=(0.5*boxsize, 0.5*height))
 myModel.Part(dimensionality=THREE_D, name='Part-1', type=DEFORMABLE_BODY)
 myPart = myModel.parts['Part-1']
 myPart.BaseSolidExtrude(depth=boxsize, sketch=s)
@@ -40,7 +41,7 @@ myAsm = myModel.rootAssembly
 myAsm.DatumCsysByDefault(CARTESIAN)
 myAsm.Instance(dependent=OFF, name='Part-1', part=myPart)
 partAsm = myAsm.instances['Part-1']
-myAsm.translate(instanceList=('Part-1', ), vector=(boxsize/2., boxsize/2., 0))
+myAsm.translate(instanceList=('Part-1', ), vector=(boxsize/2., height/2., 0))
 # # # mesh
 myAsm.seedPartInstance(size=meshSize, regions=(partAsm, ))
 myAsm.setElementType(
@@ -186,7 +187,7 @@ myPart.SectionAssignment(region=Region(cells=myPart.cells), sectionName='Section
 myAsm.Surface(name='xmin', side1Faces=partAsm.faces.getByBoundingBox(xMax=0))
 myAsm.Surface(name='xmax', side1Faces=partAsm.faces.getByBoundingBox(xMin=boxsize))
 myAsm.Surface(name='ymin', side1Faces=partAsm.faces.getByBoundingBox(yMax=0))
-myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=boxsize))
+myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=height))
 myAsm.Surface(name='zmin', side1Faces=partAsm.faces.getByBoundingBox(zMax=0))
 myAsm.Surface(name='zmax', side1Faces=partAsm.faces.getByBoundingBox(zMin=boxsize))
 
