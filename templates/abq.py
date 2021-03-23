@@ -24,6 +24,9 @@ height = data['height'][0]
 boxsize = data['boxsize'][0]
 meshSize = data['meshsize'][0]
 
+# # # check relaxation
+HourglassDistortionControl = data['HourglassDistortionControl'][0]
+
 # # # create part
 
 myModel = mdb.models['Model-1']
@@ -44,15 +47,27 @@ partAsm = myAsm.instances['Part-1']
 myAsm.translate(instanceList=('Part-1', ), vector=(boxsize/2., height/2., 0))
 # # # mesh
 myAsm.seedPartInstance(size=meshSize, regions=(partAsm, ))
-myAsm.setElementType(
-    elemTypes=(ElemType(elemCode=C3D8RT, 
-                        elemLibrary=EXPLICIT,
-                        secondOrderAccuracy=OFF, 
-                        kinematicSplit=AVERAGE_STRAIN, 
-                        hourglassControl=DEFAULT, 
-                        distortionControl=DEFAULT, 
-                        elemDeletion=ON), ),
-    regions=(partAsm.cells,))
+if HourglassDistortionControl == 'yes':
+    myAsm.setElementType(
+        elemTypes=(ElemType(elemCode=C3D8RT, 
+                            elemLibrary=EXPLICIT,
+                            secondOrderAccuracy=OFF, 
+                            kinematicSplit=AVERAGE_STRAIN, 
+                            hourglassControl=RELAX_STIFFNESS, 
+                            distortionControl=ON,
+                            lengthRatio=0.100000001490116,
+                            elemDeletion=ON), ),
+        regions=(partAsm.cells,))
+else:
+    myAsm.setElementType(
+        elemTypes=(ElemType(elemCode=C3D8RT, 
+                            elemLibrary=EXPLICIT,
+                            secondOrderAccuracy=OFF, 
+                            kinematicSplit=AVERAGE_STRAIN, 
+                            hourglassControl=DEFAULT, 
+                            distortionControl=DEFAULT, 
+                            elemDeletion=ON), ),
+        regions=(partAsm.cells,))
 myAsm.generateMesh(regions=(partAsm,))
 
 #----------- 02_model_setting.py --------------#
