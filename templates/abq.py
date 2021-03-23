@@ -87,6 +87,9 @@ ampName = 'linear'
 
 # # # temperature method
 method = data['method'][0]
+
+# # # BC type
+bc = data['bc'][0]
 #----------------------------#
 
 if ampName == 'linear':
@@ -196,6 +199,8 @@ myAsm.Set(name='xmin', faces=partAsm.faces.getByBoundingBox(xMax=0))
 myAsm.Set(name='ymin', faces=partAsm.faces.getByBoundingBox(yMax=0))
 myAsm.Set(name='zmin', faces=partAsm.faces.getByBoundingBox(zMax=0))
 
+# # # define whole model set
+myAsm.Set(name='wholePart', cells=partAsm.cells)
 
 
 # # # create step & BCs
@@ -203,8 +208,17 @@ myModel.XsymmBC(name='xsymm', createStepName='Initial',
     region=Region(faces = partAsm.faces.getByBoundingBox(xMax=0)))
 myModel.YsymmBC(name='ysymm', createStepName='Initial', 
     region=Region(faces = partAsm.faces.getByBoundingBox(yMax=0)))
-myModel.ZsymmBC(name='zsymm', createStepName='Initial',
-    region=Region(faces = partAsm.faces.getByBoundingBox(zMax=0)))
+if bc == 'plane strain':
+    myModel.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+        distributionType=UNIFORM, fieldName='', localCsys=None, name='PlainStrain', 
+        region=myAsm.sets['wholePart'], u1=UNSET, u2=
+        UNSET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+elif bc == 'uniaxial':
+    myModel.ZsymmBC(name='zsymm', createStepName='Initial',
+        region=Region(faces = partAsm.faces.getByBoundingBox(zMax=0)))
+else:
+    print('ERROR: Uniderntify Boundary condition')
+
 myModel.TempDisplacementDynamicsStep(improvedDtMethod=ON, name=
     'heat', previous='Initial', timePeriod = simTime)
 
@@ -249,7 +263,6 @@ else:
 #--------------Champ edited--------------
     
 # # # create predefined temperature
-myAsm.Set(name='wholePart', cells=partAsm.cells)
 myModel.Temperature(name='Predefined Field-1',
                     createStepName='Initial', 
                     crossSectionDistribution=CONSTANT_THROUGH_THICKNESS, 
