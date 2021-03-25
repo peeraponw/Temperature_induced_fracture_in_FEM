@@ -231,6 +231,11 @@ if bc == 'plane strain':
 elif bc == 'uniaxial':
     myModel.ZsymmBC(name='zsymm', createStepName='Initial',
         region=Region(faces = partAsm.faces.getByBoundingBox(zMax=0)))
+elif bc == 'uni_addxsymm':
+    myModel.ZsymmBC(name='zsymm', createStepName='Initial',
+        region=Region(faces = partAsm.faces.getByBoundingBox(zMax=0)))
+    myModel.XsymmBC(name='xsymm2', createStepName='Initial', 
+        region=Region(faces = partAsm.faces.getByBoundingBox(xMin=boxsize)))        
 else:
     print('ERROR: Uniderntify Boundary condition')
 
