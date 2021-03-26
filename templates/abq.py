@@ -89,7 +89,7 @@ method = 'bc' # 'bc', 'radiation', 'film'
 initTempPart = data['initTemp'][0]
 initTempOven = data['initTemp'][0]
 finalTemp = data['finalTemp'][0]
-simTime =  data['time'][0]
+simTime =  data['time'][0]          /Kt
 
 # # # material definition
 matName = 'mat_'+str(data['mat_name'][0])#'18CrNiMo7-6'
