@@ -214,6 +214,10 @@ myAsm.Set(name='xmin', faces=partAsm.faces.getByBoundingBox(xMax=0))
 myAsm.Set(name='ymin', faces=partAsm.faces.getByBoundingBox(yMax=0))
 myAsm.Set(name='zmin', faces=partAsm.faces.getByBoundingBox(zMax=0))
 
+myAsm.Set(name='xmax', faces=partAsm.faces.getByBoundingBox(xMin=boxsize))
+myAsm.Set(name='ymax', faces=partAsm.faces.getByBoundingBox(yMin=height))
+myAsm.Set(name='zmax', faces=partAsm.faces.getByBoundingBox(zMin=boxsize))
+
 # # # define whole model set
 myAsm.Set(name='wholePart', cells=partAsm.cells)
 
@@ -277,6 +281,14 @@ elif method == 'cool_convection': #--------------Champ edited--------------
                                 sinkFieldName='', 
                                 sinkTemperature=273.15, # NEEDED CHANGE
                                 surface=myAsm.surfaces['ymax'])
+elif method == 'bc_surf':
+    myModel.TemperatureBC(name = 'heatSurf',
+                            amplitude=ampName, 
+                            createStepName='heat',
+                            distributionType=UNIFORM,
+                            fixed=OFF,
+                            magnitude=1,
+                            region=myAsm.sets['ymax'])
 else: 
     print('ERROR: Undefined loading condition') 
                                 
