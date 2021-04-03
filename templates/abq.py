@@ -105,6 +105,9 @@ method = data['method'][0]
 
 # # # BC type
 bc = data['bc'][0]
+
+# # # margin 
+margin = 0.00001
 #----------------------------#
 
 if ampName == 'linear':
@@ -221,6 +224,9 @@ myAsm.Set(name='zmax', faces=partAsm.faces.getByBoundingBox(zMin=boxsize))
 # # # define whole model set
 myAsm.Set(name='wholePart', cells=partAsm.cells)
 
+# # # define dx plane for dT/dx
+myAsm.Set(name='dx', nodes=partAsm.nodes.getByBoundingBox(yMax = 
+                height - meshSize + margin, yMin = height - meshSize - margin))
 
 # # # create step & BCs
 myModel.XsymmBC(name='xsymm', createStepName='Initial', 
