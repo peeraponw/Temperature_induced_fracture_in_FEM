@@ -80,7 +80,7 @@ Kt = float(data['Kt'][0])
 Km = float(data['Km'][0])
 
 # for radiation
-emissivity = 0.65 # float(data['emissivity'][0])
+emissivity = float(data['emissivity'][0])
 # dummy expansion
 thermalExpansion = float(data['thermal_exp'][0])
 
