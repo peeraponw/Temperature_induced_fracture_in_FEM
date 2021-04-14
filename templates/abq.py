@@ -21,8 +21,12 @@ with open(sim_name+'.json', 'r') as f:
     data = json.load(f)
 
 height = data['height'][0]
-boxsize = data['boxsize'][0]
+boxwidth = data['boxwidth'][0]
+boxlength = data['boxlength'][0]
 meshSize = data['meshsize'][0]
+
+# # # check relaxation
+HourglassDistortionControl = data['HourglassDistortionControl'][0]
 
 # # # create part
 
@@ -30,10 +34,10 @@ myModel = mdb.models['Model-1']
 s = myModel.ConstrainedSketch(name='__profile__', sheetSize=height*2)
 g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
 s.sketchOptions.setValues(decimalPlaces=6)
-s.rectangle(point1=(-0.5*boxsize, -0.5*height), point2=(0.5*boxsize, 0.5*height))
+s.rectangle(point1=(-0.5*boxwidth, -0.5*height), point2=(0.5*boxwidth, 0.5*height))
 myModel.Part(dimensionality=THREE_D, name='Part-1', type=DEFORMABLE_BODY)
 myPart = myModel.parts['Part-1']
-myPart.BaseSolidExtrude(depth=boxsize, sketch=s)
+myPart.BaseSolidExtrude(depth=boxlength, sketch=s)
 del myModel.sketches['__profile__']
 
 # # # assembly
@@ -41,18 +45,30 @@ myAsm = myModel.rootAssembly
 myAsm.DatumCsysByDefault(CARTESIAN)
 myAsm.Instance(dependent=OFF, name='Part-1', part=myPart)
 partAsm = myAsm.instances['Part-1']
-myAsm.translate(instanceList=('Part-1', ), vector=(boxsize/2., height/2., 0))
+myAsm.translate(instanceList=('Part-1', ), vector=(boxwidth/2., height/2., 0))
 # # # mesh
 myAsm.seedPartInstance(size=meshSize, regions=(partAsm, ))
-myAsm.setElementType(
-    elemTypes=(ElemType(elemCode=C3D8RT, 
-                        elemLibrary=EXPLICIT,
-                        secondOrderAccuracy=OFF, 
-                        kinematicSplit=AVERAGE_STRAIN, 
-                        hourglassControl=DEFAULT, 
-                        distortionControl=DEFAULT, 
-                        elemDeletion=ON), ),
-    regions=(partAsm.cells,))
+if HourglassDistortionControl == 'yes':
+    myAsm.setElementType(
+        elemTypes=(ElemType(elemCode=C3D8RT, 
+                            elemLibrary=EXPLICIT,
+                            secondOrderAccuracy=OFF, 
+                            kinematicSplit=AVERAGE_STRAIN, 
+                            hourglassControl=RELAX_STIFFNESS, 
+                            distortionControl=ON,
+                            lengthRatio=0.100000001490116,
+                            elemDeletion=ON), ),
+        regions=(partAsm.cells,))
+else:
+    myAsm.setElementType(
+        elemTypes=(ElemType(elemCode=C3D8RT, 
+                            elemLibrary=EXPLICIT,
+                            secondOrderAccuracy=OFF, 
+                            kinematicSplit=AVERAGE_STRAIN, 
+                            hourglassControl=DEFAULT, 
+                            distortionControl=DEFAULT, 
+                            elemDeletion=ON), ),
+        regions=(partAsm.cells,))
 myAsm.generateMesh(regions=(partAsm,))
 
 #----------- 02_model_setting.py --------------#
@@ -64,7 +80,7 @@ Kt = float(data['Kt'][0])
 Km = float(data['Km'][0])
 
 # for radiation
-emissivity = 0.65 # float(data['emissivity'][0])
+emissivity = float(data['emissivity'][0])
 # dummy expansion
 thermalExpansion = float(data['thermal_exp'][0])
 
@@ -74,7 +90,7 @@ method = 'bc' # 'bc', 'radiation', 'film'
 initTempPart = data['initTemp'][0]
 initTempOven = data['initTemp'][0]
 finalTemp = data['finalTemp'][0]
-simTime =  data['time'][0]
+simTime =  data['time'][0]          /Kt
 
 # # # material definition
 matName = 'mat_'+str(data['mat_name'][0])#'18CrNiMo7-6'
@@ -87,6 +103,12 @@ ampName = 'linear'
 
 # # # temperature method
 method = data['method'][0]
+
+# # # BC type
+bc = data['bc'][0]
+
+# # # margin 
+margin = 0.00001
 #----------------------------#
 
 if ampName == 'linear':
@@ -185,33 +207,67 @@ myModel.HomogeneousSolidSection(material=matName, name='Section-1',
 myPart.SectionAssignment(region=Region(cells=myPart.cells), sectionName='Section-1')
 # # # define surface sets
 myAsm.Surface(name='xmin', side1Faces=partAsm.faces.getByBoundingBox(xMax=0))
-myAsm.Surface(name='xmax', side1Faces=partAsm.faces.getByBoundingBox(xMin=boxsize))
+myAsm.Surface(name='xmax', side1Faces=partAsm.faces.getByBoundingBox(xMin=boxwidth))
 myAsm.Surface(name='ymin', side1Faces=partAsm.faces.getByBoundingBox(yMax=0))
 myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=height))
 myAsm.Surface(name='zmin', side1Faces=partAsm.faces.getByBoundingBox(zMax=0))
-myAsm.Surface(name='zmax', side1Faces=partAsm.faces.getByBoundingBox(zMin=boxsize))
+myAsm.Surface(name='zmax', side1Faces=partAsm.faces.getByBoundingBox(zMin=boxlength))
 
 # # # define geometry face sets
 myAsm.Set(name='xmin', faces=partAsm.faces.getByBoundingBox(xMax=0))
 myAsm.Set(name='ymin', faces=partAsm.faces.getByBoundingBox(yMax=0))
 myAsm.Set(name='zmin', faces=partAsm.faces.getByBoundingBox(zMax=0))
 
+myAsm.Set(name='xmax', faces=partAsm.faces.getByBoundingBox(xMin=boxwidth))
+myAsm.Set(name='ymax', faces=partAsm.faces.getByBoundingBox(yMin=height))
+myAsm.Set(name='zmax', faces=partAsm.faces.getByBoundingBox(zMin=boxlength))
 
+# # # define whole model set
+myAsm.Set(name='wholePart', cells=partAsm.cells)
+
+# # # define dx plane for dT/dx
+myAsm.Set(name='dx', nodes=partAsm.nodes.getByBoundingBox(yMax = 
+                height - meshSize + margin, yMin = height - meshSize - margin))
 
 # # # create step & BCs
 myModel.XsymmBC(name='xsymm', createStepName='Initial', 
     region=Region(faces = partAsm.faces.getByBoundingBox(xMax=0)))
 myModel.YsymmBC(name='ysymm', createStepName='Initial', 
     region=Region(faces = partAsm.faces.getByBoundingBox(yMax=0)))
-myModel.ZsymmBC(name='zsymm', createStepName='Initial',
-    region=Region(faces = partAsm.faces.getByBoundingBox(zMax=0)))
+if bc == 'plane strain':
+    myModel.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+        distributionType=UNIFORM, fieldName='', localCsys=None, name='PlainStrain', 
+        region=myAsm.sets['wholePart'], u1=UNSET, u2=
+        UNSET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+elif bc == 'uniaxial':
+    myModel.ZsymmBC(name='zsymm', createStepName='Initial',
+        region=Region(faces = partAsm.faces.getByBoundingBox(zMax=0)))
+elif bc == 'uni_addxsymm':
+    myModel.ZsymmBC(name='zsymm', createStepName='Initial',
+        region=Region(faces = partAsm.faces.getByBoundingBox(zMax=0)))
+    myModel.XsymmBC(name='xsymm2', createStepName='Initial', 
+        region=Region(faces = partAsm.faces.getByBoundingBox(xMin=boxwidth)))  
+elif bc == 'planestrain_addx':       
+    myModel.YsymmBC(name='ysymm1', createStepName='Initial', 
+        region=Region(faces = partAsm.faces.getByBoundingBox(yMax=0)))
+    myModel.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+        distributionType=UNIFORM, fieldName='', localCsys=None, name='PlainStrainZ', 
+        region=myAsm.sets['wholePart'], u1=UNSET, u2=
+        UNSET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+    myModel.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+        distributionType=UNIFORM, fieldName='', localCsys=None, name='PlainStrainX', 
+        region=myAsm.sets['wholePart'], u1=SET, u2=
+        UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET)        
+else:
+    print('ERROR: Uniderntify Boundary condition')
+
 myModel.TempDisplacementDynamicsStep(improvedDtMethod=ON, name=
     'heat', previous='Initial', timePeriod = simTime)
 
 myModel.setValues(absoluteZero= -273.15, stefanBoltzmann=5.67e-11)
 if method == 'bc_edge':
     # # # define geometry edge set for applying bc
-    myAsm.Set(name='temp_edge', edges=partAsm.edges.getByBoundingBox(xMin=boxsize, yMin=height))
+    myAsm.Set(name='temp_edge', edges=partAsm.edges.getByBoundingBox(xMin=boxwidth, yMin=height))
 
     myModel.TemperatureBC(name = 'heatBC',
                             amplitude=ampName, 
@@ -231,7 +287,36 @@ elif method == 'radiation':
                                 field='',  
                                 radiationType=AMBIENT, 
                                 surface=myAsm.surfaces['ymax'])
-elif method == 'cool_convection': #--------------Champ edited--------------
+elif method == 'radiation_3surf': #--------------Champ edited--------------
+    myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=height))
+    myModel.RadiationToAmbient(name='radYmax',
+                                ambientTemperature=1, 
+                                ambientTemperatureAmp=ampName, 
+                                createStepName='heat', 
+                                distributionType=UNIFORM, 
+                                emissivity=emissivity, 
+                                field='',  
+                                radiationType=AMBIENT, 
+                                surface=myAsm.surfaces['ymax'])
+    myModel.RadiationToAmbient(name='radXmax',
+                                ambientTemperature=1, 
+                                ambientTemperatureAmp=ampName, 
+                                createStepName='heat', 
+                                distributionType=UNIFORM, 
+                                emissivity=emissivity, 
+                                field='',  
+                                radiationType=AMBIENT, 
+                                surface=myAsm.surfaces['xmax'])
+    myModel.RadiationToAmbient(name='radZmax',
+                                ambientTemperature=1, 
+                                ambientTemperatureAmp=ampName, 
+                                createStepName='heat', 
+                                distributionType=UNIFORM, 
+                                emissivity=emissivity, 
+                                field='',  
+                                radiationType=AMBIENT, 
+                                surface=myAsm.surfaces['zmax'])                                  
+elif method == 'cool_convection': 
     myAsm.Surface(name='ymax', side1Faces=partAsm.faces.getByBoundingBox(yMin=height))
     myModel.FilmCondition(createStepName='heat', 
                                 definition=EMBEDDED_COEFF, 
@@ -243,13 +328,34 @@ elif method == 'cool_convection': #--------------Champ edited--------------
                                 sinkFieldName='', 
                                 sinkTemperature=273.15, # NEEDED CHANGE
                                 surface=myAsm.surfaces['ymax'])
+elif method == 'bc_surf':
+    myModel.TemperatureBC(name = 'heatY',
+                            amplitude=ampName, 
+                            createStepName='heat',
+                            distributionType=UNIFORM,
+                            fixed=OFF,
+                            magnitude=1,
+                            region=myAsm.sets['ymax'])
+    myModel.TemperatureBC(name = 'heatX',
+                            amplitude=ampName, 
+                            createStepName='heat',
+                            distributionType=UNIFORM,
+                            fixed=OFF,
+                            magnitude=1,
+                            region=myAsm.sets['xmax'])
+    myModel.TemperatureBC(name = 'heatZ',
+                            amplitude=ampName, 
+                            createStepName='heat',
+                            distributionType=UNIFORM,
+                            fixed=OFF,
+                            magnitude=1,
+                            region=myAsm.sets['zmax'])
 else: 
     print('ERROR: Undefined loading condition') 
                                 
 #--------------Champ edited--------------
     
 # # # create predefined temperature
-myAsm.Set(name='wholePart', cells=partAsm.cells)
 myModel.Temperature(name='Predefined Field-1',
                     createStepName='Initial', 
                     crossSectionDistribution=CONSTANT_THROUGH_THICKNESS, 
