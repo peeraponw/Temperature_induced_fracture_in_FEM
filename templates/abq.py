@@ -25,6 +25,9 @@ boxwidth = data['boxwidth'][0]
 boxlength = data['boxlength'][0]
 meshSize = data['meshsize'][0]
 
+# # # simulation type
+simtype = data['simtype'][0]
+
 # # # check relaxation
 HourglassDistortionControl = data['HourglassDistortionControl'][0]
 
@@ -60,15 +63,23 @@ if HourglassDistortionControl == 'yes':
                             elemDeletion=ON), ),
         regions=(partAsm.cells,))
 else:
-    myAsm.setElementType(
-        elemTypes=(ElemType(elemCode=C3D8RT, 
-                            elemLibrary=EXPLICIT,
-                            secondOrderAccuracy=OFF, 
-                            kinematicSplit=AVERAGE_STRAIN, 
-                            hourglassControl=DEFAULT, 
-                            distortionControl=DEFAULT, 
-                            elemDeletion=ON), ),
-        regions=(partAsm.cells,))
+    if simtype == 'implicit':
+        myAsm.setElementType(
+            elemTypes=(ElemType(elemCode=C3D8T, 
+                                elemLibrary=STANDARD, 
+                                secondOrderAccuracy=OFF, 
+                                distortionControl=DEFAULT), ),
+            regions=(partAsm.cells,))
+    else:        
+        myAsm.setElementType(
+            elemTypes=(ElemType(elemCode=C3D8RT, 
+                                elemLibrary=EXPLICIT,
+                                secondOrderAccuracy=OFF, 
+                                kinematicSplit=AVERAGE_STRAIN, 
+                                hourglassControl=DEFAULT, 
+                                distortionControl=DEFAULT, 
+                                elemDeletion=ON), ),
+            regions=(partAsm.cells,))
 myAsm.generateMesh(regions=(partAsm,))
 
 #----------- 02_model_setting.py --------------#
@@ -115,7 +126,7 @@ if ampName == 'linear':
     myModel.TabularAmplitude(data=((0,initTempOven), (simTime, finalTemp)), name='linear', smooth=SOLVER_DEFAULT, timeSpan=STEP)
 
 
-varList = ('E','ENER','HFL','HFLA','HTL','HTLA','NT','PEEQ','RF','RFL','S','SDV','STATUS','TEMP','TEMPMAVG','U', 'EVOL')
+varList = ('E','ENER','HFL','HFLA','HTL','HTLA','NT','PEEQ','RF','RFL','S','SDV','STATUS','TEMP','U', 'EVOL') #,'TEMPMAVG'
 
 myModel = mdb.models['Model-1']
 myPart = myModel.parts['Part-1']
@@ -261,8 +272,13 @@ elif bc == 'planestrain_addx':
 else:
     print('ERROR: Uniderntify Boundary condition')
 
-myModel.TempDisplacementDynamicsStep(improvedDtMethod=ON, name=
-    'heat', previous='Initial', timePeriod = simTime)
+if simtype == 'explicit':    
+    myModel.TempDisplacementDynamicsStep(improvedDtMethod=ON, name=
+        'heat', previous='Initial', timePeriod = simTime)    
+elif simtype == 'implicit':      
+    myModel.CoupledTempDisplacementStep(deltmx=(finalTemp - initTempOven)*simTime**-1, initialInc=simTime*1e-2, 
+        maxInc=simTime*0.1, maxNumInc=simTime*100, minInc=simTime*1e-5, name='heat', nlgeom=ON, 
+        previous='Initial', timePeriod = simTime) 
 
 myModel.setValues(absoluteZero= -273.15, stefanBoltzmann=5.67e-11)
 if method == 'bc_edge':
