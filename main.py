@@ -30,9 +30,6 @@ def clean_files(pattern):
 for sim_name in sim_list:
     # get json file from airtable
     fetch_airtable(sim_name)
-    
-    simtype = data['simtype'][0]
-    
     # load file from folder templates
     env = Environment(loader=FileSystemLoader("templates"))
     abq_template = env.get_template('abq.py')
@@ -53,20 +50,11 @@ for sim_name in sim_list:
     copyfile(f"{sim_name}.inp", f"X:/{sim_name}/{sim_name}.inp")
     # copy qsub file and render template to X-drive
     username = config['qsub']['username']
-    #
-    if simtype == 'implicit':
-        qsub_dict = {"sim_name": sim_name,
-                     "username": username,
-                     "email": config['qsub']['email'],
-                     "fortranfile": config['qsub']['fortranfile_IMP']    
-                    }
-    else:                
-        qsub_dict = {"sim_name": sim_name,
-                     "username": username,
-                     "email": config['qsub']['email'],
-                     "fortranfile": config['qsub']['fortranfile_EXP']    
-                    }
-    
+    qsub_dict = {"sim_name": sim_name,
+                 "username": username,
+                 "email": config['qsub']['email'],
+                 "fortranfile": config['qsub']['fortranfile']    
+                }
     qsub_template = env.get_template('qsub.qsb')
     qsub_template.stream(qsub_dict).dump(f"X:/{sim_name}/{sim_name}.qsb")
     # copy material file
