@@ -103,6 +103,7 @@ initTempOven = data['initTemp'][0]
 finalTemp = data['finalTemp'][0]
 simTime =  data['time'][0]          /Kt
 
+simTime = int(simTime)
 # # # material definition
 matName = 'mat_'+str(data['mat_name'][0])#'18CrNiMo7-6'
 matFile = "{{ matfile }}"
