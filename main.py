@@ -30,6 +30,16 @@ def clean_files(pattern):
 for sim_name in sim_list:
     # get json file from airtable
     fetch_airtable(sim_name)
+    # get simtype and set explicit/implicit
+    with open(sim_name+'.json', 'r') as g:
+        data = json.load(g)
+    simtype=data['simtype'][0]
+    if simtype == 'explicit':	
+        FORTRAN='fortranfile_EXP'
+        mat='matEXP.inp'
+    elif simtype == 'implicit':
+        FORTRAN='fortranfile_IMP'
+        mat='matIMP.inp'
     # load file from folder templates
     env = Environment(loader=FileSystemLoader("templates"))
     abq_template = env.get_template('abq.py')
@@ -53,12 +63,12 @@ for sim_name in sim_list:
     qsub_dict = {"sim_name": sim_name,
                  "username": username,
                  "email": config['qsub']['email'],
-                 "fortranfile": config['qsub']['fortranfile']    
+                 "fortranfile": config['qsub'][FORTRAN]    
                 }
     qsub_template = env.get_template('qsub.qsb')
     qsub_template.stream(qsub_dict).dump(f"X:/{sim_name}/{sim_name}.qsb")
     # copy material file
-    mat_template = env.get_template('mat.inp')
+    mat_template = env.get_template(mat)
     mat_template.stream().dump(f"X:/{sim_name}/{config['qsub']['matfile']}")
     # submit job
     ssh = paramiko.SSHClient()
